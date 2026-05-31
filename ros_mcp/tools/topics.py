@@ -54,6 +54,8 @@ def register_topic_tools(
         # Return topic info if present
         if isinstance(response, dict) and "values" in response:
             values = response["values"]
+            if not isinstance(values, dict):
+                return {"error": f"Unexpected /rosapi/topics response: {values}"}
             topics = values.get("topics", [])
             types = values.get("types", [])
             return {"topics": topics, "types": types, "topic_count": len(topics)}
@@ -161,7 +163,9 @@ def register_topic_tools(
 
             type_response = ws_manager.request(type_message)
             if type_response and "values" in type_response:
-                result["type"] = type_response["values"].get("type", "unknown")
+                values = type_response["values"]
+                if isinstance(values, dict):
+                    result["type"] = values.get("type", "unknown")
 
             # Get publishers for this topic
             publishers_message = {
@@ -174,7 +178,9 @@ def register_topic_tools(
 
             publishers_response = ws_manager.request(publishers_message)
             if publishers_response and "values" in publishers_response:
-                result["publishers"] = publishers_response["values"].get("publishers", [])
+                values = publishers_response["values"]
+                if isinstance(values, dict):
+                    result["publishers"] = values.get("publishers", [])
 
             # Get subscribers for this topic
             subscribers_message = {
@@ -187,7 +193,9 @@ def register_topic_tools(
 
             subscribers_response = ws_manager.request(subscribers_message)
             if subscribers_response and "values" in subscribers_response:
-                result["subscribers"] = subscribers_response["values"].get("subscribers", [])
+                values = subscribers_response["values"]
+                if isinstance(values, dict):
+                    result["subscribers"] = values.get("subscribers", [])
 
         result["publisher_count"] = len(result["publishers"])
         result["subscriber_count"] = len(result["subscribers"])
