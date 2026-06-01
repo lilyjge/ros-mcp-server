@@ -7,34 +7,28 @@ type: real
 prompts: |
   PuppyPi is a quadruped robot from HiWonder.
 
-  ## Movement Control — use services, NOT topics
-  The reliable way to move the dog is via the trigger services, which block until
-  the movement completes. Do NOT use /puppy_control/velocity or /cmd_vel — they
-  do not work reliably.
+  ## Movement Control — verified velocity topic
+  The verified way to move this connected PuppyPi through ROS MCP is publishing
+  puppy_control_msgs/msg/Velocity on /puppy_control/velocity, followed by an
+  all-zero stop message.
 
   ### Move a distance (forward / backward)
-  - Service: /puppy/move_distance_trigger
-  - Type: puppy_control_msgs/srv/MoveDistanceTrigger
-  - Args: {"distance": <cm>, "speed": <0.0-1.0>}
-  - Positive distance = forward, negative = backward
-  - Recommended speed: 0.5
-  - Set timeout >= 15 seconds to allow movement to complete
-  - Example (move 10 cm forward at half speed):
-      call_service("/puppy/move_distance_trigger",
-                   "puppy_control_msgs/srv/MoveDistanceTrigger",
-                   {"distance": 10, "speed": 0.5},
-                   timeout=15)
+  - Topic: /puppy_control/velocity
+  - Type: puppy_control_msgs/msg/Velocity
+  - Forward example: {"x": 5.0, "y": 0.0, "yaw_rate": 0.0}
+  - Publish for a bounded duration, then publish {"x": 0.0, "y": 0.0, "yaw_rate": 0.0}
+  - x: 5.0 for 0.8 seconds was verified to move the dog forward.
+  - x: 0.15 was too small and made the dog trot in place.
 
   ### Rotate
-  - Service: /puppy/rotate_angle_trigger
-  - Type: puppy_control_msgs/srv/RotateAngleTrigger
-  - Args: {"angle": <degrees>, "speed": <0.0-1.0>}
-  - Positive angle = left (counter-clockwise), negative = right (clockwise)
+  - Rotation is not yet verified. /puppy/rotate_angle exists as an action, but
+    action movement through MCP timed out during testing.
 
   ## Important Topics (read-only / diagnostics)
   - /joint_states - Robot joint positions
-  - /usb_cam/image_raw - Camera feed (when camera node is running)
-  - /scan - Lidar data (when lidar is running)
+  - /image_raw - Camera feed when the camera node is running
+  - /puppy_control/velocity - Low-level velocity fallback
+  - /puppy_control/velocity_move - Low-level velocity fallback
 
   ## Other Services
   - /puppy_control/go_home - Return to home position (std_srvs/srv/Empty)
@@ -43,8 +37,16 @@ prompts: |
   - /puppy_control/runActionGroup - Run predefined action (puppy_control_msgs/srv/SetRunActionName)
 
   ## Camera
-  - Camera topic: /usb_cam/image_raw
+  - Camera topic: /image_raw
 
-  ## What does NOT work
-  - /puppy_control/velocity topic — unreliable, do not use
-  - /cmd_vel topic — does not work with this robot
+  ## Velocity fallback
+  - Hiwonder's ROS 2 docs demonstrate forward walking on /puppy_control/velocity
+    with puppy_control_msgs/msg/Velocity and x: 5.0, y: 0.0, yaw_rate: 0.0.
+  - Always send an all-zero velocity stop after any velocity movement.
+  - Very small values such as x: 0.15 may make the dog trot in place rather
+    than translate.
+
+  ## Unverified actions
+  - /puppy/move_distance, /puppy/rotate_angle, and /puppy/move_to_pose were
+    present in the live graph, but /puppy/move_distance did not move the dog
+    through ROS MCP and timed out waiting for a result.
