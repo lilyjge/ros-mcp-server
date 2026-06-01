@@ -182,16 +182,23 @@ def _decode_image_data(
     img_np: np.ndarray, height: int, width: int, encoding: str, msg: dict
 ) -> np.ndarray | None:
     """Decode image data based on encoding type."""
+    encoding_lower = encoding.lower()
     # 8-bit encodings
-    if encoding == "rgb8":
+    if encoding_lower == "rgb8":
         img_cv = img_np.reshape((height, width, 3))
         img_cv = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
-    elif encoding == "bgr8":
+    elif encoding_lower == "bgr8":
         img_cv = img_np.reshape((height, width, 3))
-    elif encoding.lower() == "mono8":
+    elif encoding_lower in ["yuv422_yuy2", "yuyv", "yuy2"]:
+        img_yuv = img_np.reshape((height, width, 2))
+        img_cv = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR_YUY2)
+    elif encoding_lower in ["yuv422_uyvy", "uyvy"]:
+        img_yuv = img_np.reshape((height, width, 2))
+        img_cv = cv2.cvtColor(img_yuv, cv2.COLOR_YUV2BGR_UYVY)
+    elif encoding_lower == "mono8":
         img_cv = img_np.reshape((height, width))
     # 16-bit encodings
-    elif encoding.lower() in ["mono16", "16uc1"]:
+    elif encoding_lower in ["mono16", "16uc1"]:
         img16 = img_np.reshape((height, width))
         # Handle big-endian byte order if needed
         try:

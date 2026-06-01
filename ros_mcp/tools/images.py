@@ -94,7 +94,7 @@ def register_image_tools(
     )
     def capture_camera_image(
         topic: str = default_camera_topic,
-        msg_type: str = "sensor_msgs/msg/CompressedImage",
+        msg_type: str = "auto",
         return_image_content: bool = False,
         timeout: float = 5.0,
     ) -> dict | ImageContent:  # type: ignore  # See issue #140
@@ -109,7 +109,8 @@ def register_image_tools(
         
         Args:
             topic (str): Camera topic name (default: "/image_raw/compressed")
-            msg_type (str): Message type (default: "sensor_msgs/msg/CompressedImage")
+            msg_type (str): Message type. Use "auto" to infer raw vs compressed
+                from the topic name. (default: "auto")
             return_image_content (bool): If True, return the image for LLM analysis. 
                 If False, save the image and return the relative_path for use with 
                 Reachy's describe_image tool. (default: False)
@@ -123,6 +124,13 @@ def register_image_tools(
         """
         if ws_manager is None:
             return {"error": "WebSocketManager not available. This tool requires a ROS connection."}
+
+        if msg_type in ("", "auto", None):
+            msg_type = (
+                "sensor_msgs/msg/CompressedImage"
+                if "compressed" in topic.lower()
+                else "sensor_msgs/msg/Image"
+            )
         
         # Import here to avoid circular dependency
         import time
