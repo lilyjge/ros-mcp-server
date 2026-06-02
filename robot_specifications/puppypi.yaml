@@ -21,8 +21,26 @@ prompts: |
   - x: 0.15 was too small and made the dog trot in place.
 
   ### Rotate
-  - Rotation is not yet verified. /puppy/rotate_angle exists as an action, but
-    action movement through MCP timed out during testing.
+  - Prefer /puppy_control/velocity with x: 0.0, y: 0.0, and a bounded yaw_rate,
+    followed by an all-zero stop message.
+  - Raw velocity rotation tradeoff: yaw_rate around 0.2 gives a cleaner,
+    more in-place turn, but it is not a small angle; lower yaw rates produce
+    smaller turns but arc more.
+  - Calibrated cleaner rotation command: {"x": 0.0, "y": 0.0, "yaw_rate": 0.2}
+    for 0.03 seconds, then {"x": 0.0, "y": 0.0, "yaw_rate": 0.0} for 0.5
+    seconds. This was observed as roughly a 135 degree turn.
+  - Do not rely on sub-30ms durations for smaller angles; yaw_rate: 0.2 for
+    0.01 seconds still produced roughly 135 degrees, likely due to a
+    controller/gait timing floor.
+  - Avoid yaw_rate: 0.5 for small turns; even 0.01 seconds produced nearly a
+    full rotation.
+  - Positive yaw_rate should turn left / counterclockwise and negative yaw_rate
+    should turn right / clockwise, unless live testing shows this PuppyPi image
+    has the signs reversed.
+  - Do not claim a specific angle turned unless the user confirms it, a
+    calibration table exists, or odometry is available.
+  - /puppy/rotate_angle exists as an action, but action movement through MCP
+    has not been verified and /puppy/move_distance timed out during testing.
 
   ## Important Topics (read-only / diagnostics)
   - /joint_states - Robot joint positions
@@ -43,6 +61,11 @@ prompts: |
   - Hiwonder's ROS 2 docs demonstrate forward walking on /puppy_control/velocity
     with puppy_control_msgs/msg/Velocity and x: 5.0, y: 0.0, yaw_rate: 0.0.
   - Always send an all-zero velocity stop after any velocity movement.
+  - For rotation, use /puppy_control/velocity with x: 0.0, y: 0.0, and a short
+    bounded yaw_rate, followed by all-zero velocity. Prefer yaw_rate around 0.2
+    for cleaner raw-velocity turns, but treat it as a large turn. For smaller
+    turns, use lower yaw_rate and accept more arcing. Do not rely on sub-30ms
+    durations for smaller angles, and avoid yaw_rate: 0.5 for small turns.
   - Very small values such as x: 0.15 may make the dog trot in place rather
     than translate.
 
